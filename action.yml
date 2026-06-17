@@ -169,21 +169,34 @@ runs:
       run: |
         set -euo pipefail
         npmrc="${RUNNER_TEMP}/.npmrc"
-        # normalize: strip trailing slash, get host for the _authToken line
-        url="${REGISTRY_URL%/}"
-        host="${url#*://}"; host="${host%%/*}"
+        # normalize the registry URL to a trailing slash (authutil.ts:12-14).
+        url="${REGISTRY_URL%/}/"
         scope="$SCOPE"
-        # GitHub Packages: default the scope to the repo owner, lowercased.
-        if [ -z "$scope" ] && [ "$host" = "npm.pkg.github.com" ]; then
-          scope="@$(echo "$OWNER" | tr '[:upper:]' '[:lower:]')"
+        # GitHub Packages: default the scope to the repo owner (authutil.ts:21-23).
+        host_only="${url#*://}"; host_only="${host_only%%/*}"
+        if [ -z "$scope" ] && [ "$host_only" = "npm.pkg.github.com" ]; then
+          scope="$OWNER"
         fi
+        # Normalize the scope exactly like setup-node (authutil.ts:24-29):
+        # prepend a leading @ if missing, then lowercase the WHOLE scope.
+        if [ -n "$scope" ]; then
+          case "$scope" in
+            @*) ;;
+            *) scope="@${scope}" ;;
+          esac
+          scope="$(echo "$scope" | tr '[:upper:]' '[:lower:]')"
+        fi
+        # The auth-token line prefix strips ONLY the scheme and keeps the full
+        # path (authutil.ts:43-44: registryUrl.replace(/(^\w+:|^)/, '')), so a
+        # path-bearing private registry keeps its path in the //host/path/ key.
+        auth_prefix="${url#*://}"
         {
           if [ -n "$scope" ]; then
-            echo "${scope}:registry=${url}/"
+            echo "${scope}:registry=${url}"
           else
-            echo "registry=${url}/"
+            echo "registry=${url}"
           fi
-          echo "//${host}/:_authToken=\${NODE_AUTH_TOKEN}"
+          echo "//${auth_prefix}:_authToken=\${NODE_AUTH_TOKEN}"
           [ "$ALWAYS_AUTH" = "true" ] && echo "always-auth=true"
         } > "$npmrc"
         echo "NPM_CONFIG_USERCONFIG=${npmrc}" >> "$GITHUB_ENV"

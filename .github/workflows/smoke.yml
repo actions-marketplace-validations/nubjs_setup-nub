@@ -75,14 +75,15 @@ jobs:
       - uses: actions/checkout@v4
       - name: fixture pinned to 20
         shell: bash
-        run: |
-          mkdir -p smoke && cd smoke && echo "20" > .node-version
+        # The action's Pre-provision step resolves the project pin (nub node which)
+        # at the checkout root, where a consumer's pin lives — so the fixture pin
+        # must sit there too, not under a subdir.
+        run: echo "20" > .node-version
       - uses: ./
         id: nub
         with:
           node-version: "20"
       - shell: bash
-        working-directory: smoke
         run: |
           set -euo pipefail
           nub node ls
@@ -143,3 +144,30 @@ jobs:
           grep -q '@nubjs:registry=https://npm.pkg.github.com/' "$npmrc"
           grep -q '//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}' "$npmrc"
           grep -q 'always-auth=true' "$npmrc"
+
+  auth-npmrc-bare-scope:
+    name: bare scope + path registry .npmrc shape (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./
+        with:
+          # bare scope (no leading @, mixed case) against a path-bearing private
+          # registry — exercises authutil's scope normalization (prepend @,
+          # lowercase whole) and full-path auth key.
+          registry-url: "https://reg.example.com/npm/"
+          scope: "My-Org"
+      - name: assert normalized scope + path-preserving auth key
+        shell: bash
+        run: |
+          set -euo pipefail
+          npmrc="${RUNNER_TEMP}/.npmrc"
+          cat "$npmrc"
+          # bare "My-Org" -> "@my-org" (prepend @, lowercase whole)
+          grep -q '@my-org:registry=https://reg.example.com/npm/' "$npmrc"
+          # auth key keeps the full registry path, not just the host
+          grep -q '//reg.example.com/npm/:_authToken=${NODE_AUTH_TOKEN}' "$npmrc"
