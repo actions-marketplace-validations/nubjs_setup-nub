@@ -3,7 +3,7 @@
 Install the [nub](https://github.com/nubjs/nub) CLI on a GitHub Actions runner. A **drop-in replacement for [`actions/setup-node`](https://github.com/actions/setup-node)** — swap the `uses:` line and your existing workflow keeps working.
 
 ```yaml
-- uses: nubjs/setup-nub@v1
+- uses: nubjs/setup-nub@v0
 - run: nub install
 - run: nub run build
 ```
@@ -23,7 +23,7 @@ That's the whole story for most projects: nub provisions the project's pinned No
     registry-url: https://registry.npmjs.org
 
 # after
-- uses: nubjs/setup-nub@v1
+- uses: nubjs/setup-nub@v0
   with:
     node-version: 20          # pre-provisions Node 20 into nub's cache (warm-up hint)
     cache: true               # boolean — nub has one store regardless of lockfile
@@ -53,7 +53,7 @@ This is the one place the drop-in semantics bend: setup-node's `node-version` ov
 | `always-auth` | `false` | Write `always-auth=true` into the `.npmrc`. |
 | `token` | `github.token` | GitHub-API rate-limit relief when resolving nub's version range. |
 
-Accepted for setup-node compatibility but **ignored in v1** (never errors): `check-latest`, `architecture`, `mirror`, `mirror-token`.
+Accepted for setup-node compatibility but **ignored** (never errors): `check-latest`, `architecture`, `mirror`, `mirror-token`.
 
 > The `version` input is a **deprecated** alias for `nub-version`, kept for one minor. It emits a warning; use `nub-version`.
 
@@ -73,7 +73,7 @@ With `cache: true`, the action caches nub's durable, cross-run directories:
 - the provisioned Node toolchain dir (`<cache>/node`)
 - the PM packument cache (best-effort)
 
-The cache key is `nub-<os>-<arch>-<hash(lockfile)>` with a `restore-keys` ladder so a fresh lockfile still gets a warm store. `cache` defaults to `false` for v1 (opt-in).
+The cache key is `nub-<os>-<arch>-<hash(lockfile)>` with a `restore-keys` ladder so a fresh lockfile still gets a warm store. `cache` defaults to `false` (opt-in).
 
 ## Registry auth
 
@@ -87,7 +87,7 @@ The cache key is `nub-<os>-<arch>-<hash(lockfile)>` with a `restore-keys` ladder
 Set the token the same way you would for setup-node:
 
 ```yaml
-- uses: nubjs/setup-nub@v1
+- uses: nubjs/setup-nub@v0
   with:
     registry-url: https://npm.pkg.github.com
     scope: "@my-org"
@@ -98,8 +98,8 @@ Set the token the same way you would for setup-node:
 
 ## Versioning
 
-- `nubjs/setup-nub@v1` — floating major, gets fixes (recommended).
-- `nubjs/setup-nub@v1.0.0` — pinned to a specific release.
+- `nubjs/setup-nub@v0` — floating tag, gets fixes (recommended).
+- `nubjs/setup-nub@v0.1.0` — pinned to a specific release.
 
 ## License
 
